@@ -1,13 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strconv"
 	"syscall"
@@ -37,7 +38,7 @@ type Author struct {
 }
 
 //Webhook represents push information from the webhook
-type Webhook struct {
+type PushEvent struct {
 	Before            string
 	After             string
 	Ref               string
@@ -47,6 +48,25 @@ type Webhook struct {
 	Repository        GitlabRepository
 	Commits           []Commit
 	TotalCommitsCount int
+}
+
+// assignee information from merge request webhook
+type GitlabUser struct {
+	Name string
+	UserName string
+}
+
+type ObjectAttributes struct {
+	LastCommit Commit `json:"last_commit"`
+	Url string
+	Assignee GitlabUser
+}
+
+// merge request information from the webhook
+type MergeRequestEvent struct {
+	User GitlabUser
+	Repository GitlabRepository
+	ObjectAttributes ObjectAttributes `json:"object_attributes"`
 }
 
 //ConfigRepository represents a repository from the config file
@@ -60,7 +80,18 @@ type Config struct {
 	Logfile      string
 	Address      string
 	Port         int64
-	Repositories []ConfigRepository
+	HookAddress  string
+}
+
+// wewrok message content
+type Content struct {
+	Content string `json:"content"`
+}
+
+// wework robot message
+type Message struct {
+	MsgType string  `json:"msgtype"`
+	Text    Content `json:"text"`
 }
 
 func PanicIf(err error, what ...string) {
@@ -121,7 +152,7 @@ func main() {
 	log.SetOutput(writer)
 
 	//setting handler
-	http.HandleFunc("/", hookHandler)
+	http.HandleFunc("/webhook", hookHandler)
 
 	address := config.Address + ":" + strconv.FormatInt(config.Port, 10)
 
@@ -158,7 +189,7 @@ func loadConfig(configFile string) (Config, error) {
 }
 
 func hookHandler(w http.ResponseWriter, r *http.Request) {
-	var hook Webhook
+	var hook MergeRequestEvent
 
 	//read request body
 	var data, err = ioutil.ReadAll(r.Body)
@@ -174,22 +205,40 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//find matching config for repository name
-	for _, repo := range config.Repositories {
-		if repo.Name != hook.Repository.Name {
-			continue
-		}
-
-		//execute commands for repository
-		for _, cmd := range repo.Commands {
-			var command = exec.Command(cmd)
-			out, err := command.Output()
-			if err != nil {
-				log.Printf("Failed to execute command: %s", err)
-				continue
-			}
-			log.Println("Executed: " + cmd)
-			log.Println("Output: " + string(out))
-		}
+	content := fmt.Sprintf(
+		"%s 有新的 PR:\n%s\n%s\nAuthor 是 %s\nAssigne 是 %s",
+		hook.Repository.Name,
+		hook.ObjectAttributes.Url,
+		hook.ObjectAttributes.LastCommit.Message,
+		hook.User.Name,
+		hook.ObjectAttributes.Assignee.Name)
+	message := Message{
+		MsgType: "text",
+		Text: Content{
+			Content: content,
+		},
 	}
+	sendMessageToWework(message)
+	res, err := json.Marshal(hook)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(res)
+}
+
+func sendMessageToWework(message Message) {
+	msgBytes, err := json.Marshal(message)
+	if err != nil {
+		return
+	}
+	_, err = http.Post(
+		config.HookAddress,
+		"application/json",
+		bytes.NewBuffer(msgBytes))
+
+	if err != nil {
+		log.Printf("Failed to send message: %s", err)
+	}
+
 }
