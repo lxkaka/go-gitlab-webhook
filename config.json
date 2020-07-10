@@ -1,0 +1,6 @@
+{
+  "logfile": "log.log",
+  "address": "0.0.0.0",
+  "port": 8000,
+  "hookAddress": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=75ff7078-3cca-4052-b998-f5995cd06bc4"
+}
