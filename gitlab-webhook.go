@@ -60,6 +60,7 @@ type ObjectAttributes struct {
 	LastCommit Commit `json:"last_commit"`
 	Url string
 	Assignee GitlabUser
+	State string
 }
 
 // merge request information from the webhook
@@ -204,14 +205,21 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to parse request: %s", err)
 		return
 	}
-
+	assignee := hook.ObjectAttributes.Assignee
+	assigneeName := ""
+	if assignee == (GitlabUser{}) {
+		assigneeName  = "缺少 assignee"
+	} else {
+		assigneeName = assignee.Name
+	}
 	content := fmt.Sprintf(
-		"%s 有新的 PR:\n%s\n%s\nAuthor 是 %s\nAssigne 是 %s",
+		"%s 有新的 PR(%s):\n%s\n%s\nAuthor: %s\nAssignee: %s",
 		hook.Repository.Name,
+		hook.ObjectAttributes.State,
 		hook.ObjectAttributes.Url,
 		hook.ObjectAttributes.LastCommit.Message,
 		hook.User.Name,
-		hook.ObjectAttributes.Assignee.Name)
+		assigneeName)
 	message := Message{
 		MsgType: "text",
 		Text: Content{
