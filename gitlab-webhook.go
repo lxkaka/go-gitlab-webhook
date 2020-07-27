@@ -52,21 +52,21 @@ type PushEvent struct {
 
 // assignee information from merge request webhook
 type GitlabUser struct {
-	Name string
+	Name     string
 	UserName string
 }
 
 type ObjectAttributes struct {
 	LastCommit Commit `json:"last_commit"`
-	Url string
-	Assignee GitlabUser
-	State string
+	Url        string
+	Assignee   GitlabUser
+	State      string
 }
 
 // merge request information from the webhook
 type MergeRequestEvent struct {
-	User GitlabUser
-	Repository GitlabRepository
+	User             GitlabUser
+	Repository       GitlabRepository
 	ObjectAttributes ObjectAttributes `json:"object_attributes"`
 }
 
@@ -78,10 +78,10 @@ type ConfigRepository struct {
 
 //Config represents the config file
 type Config struct {
-	Logfile      string
-	Address      string
-	Port         int64
-	HookAddress  string
+	Logfile     string
+	Address     string
+	Port        int64
+	HookAddress string
 }
 
 // wewrok message content
@@ -208,7 +208,7 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 	assignee := hook.ObjectAttributes.Assignee
 	assigneeName := ""
 	if assignee == (GitlabUser{}) {
-		assigneeName  = "缺少 assignee"
+		assigneeName = "缺少 assignee"
 	} else {
 		assigneeName = assignee.Name
 	}
