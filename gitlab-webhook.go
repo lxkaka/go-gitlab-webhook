@@ -138,19 +138,19 @@ func main() {
 	}
 
 	//open log file
-	writer, err := os.OpenFile(config.Logfile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
-	if err != nil {
-		log.Printf("Failed to open log file: %s", err)
-		os.Exit(1)
-	}
-
-	//close logfile on exit
-	defer func() {
-		writer.Close()
-	}()
-
-	//setting logging output
-	log.SetOutput(writer)
+	//writer, err := os.OpenFile(config.Logfile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	//if err != nil {
+	//	log.Printf("Failed to open log file: %s", err)
+	//	os.Exit(1)
+	//}
+	//
+	////close logfile on exit
+	//defer func() {
+	//	writer.Close()
+	//}()
+	//
+	////setting logging output
+	//log.SetOutput(writer)
 
 	//setting handler
 	http.HandleFunc("/webhook", hookHandler)
@@ -205,6 +205,7 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to parse request: %s", err)
 		return
 	}
+	log.Printf("hook info: %+v", hook)
 	assignee := hook.ObjectAttributes.Assignee
 	assigneeName := ""
 	if assignee == (GitlabUser{}) {
