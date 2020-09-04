@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -198,36 +197,36 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to read request: %s", err)
 		return
 	}
-
 	//unmarshal request body
 	err = json.Unmarshal(data, &hook)
 	if err != nil {
 		log.Printf("Failed to parse request: %s", err)
 		return
 	}
+	log.Printf("request data: %s", data)
 	log.Printf("hook info: %+v", hook)
-	assignee := hook.ObjectAttributes.Assignee
-	assigneeName := ""
-	if assignee == (GitlabUser{}) {
-		assigneeName = "缺少 assignee"
-	} else {
-		assigneeName = assignee.Name
-	}
-	content := fmt.Sprintf(
-		"%s 有新的 PR(%s):\n%s\n%s\nAuthor: %s\nAssignee: %s",
-		hook.Repository.Name,
-		hook.ObjectAttributes.State,
-		hook.ObjectAttributes.Url,
-		hook.ObjectAttributes.LastCommit.Message,
-		hook.User.Name,
-		assigneeName)
-	message := Message{
-		MsgType: "text",
-		Text: Content{
-			Content: content,
-		},
-	}
-	sendMessageToWework(message)
+	//assignee := hook.ObjectAttributes.Assignee
+	//assigneeName := ""
+	//if assignee == (GitlabUser{}) {
+	//	assigneeName = "缺少 assignee"
+	//} else {
+	//	assigneeName = assignee.Name
+	//}
+	//content := fmt.Sprintf(
+	//	"%s 有新的 PR(%s):\n%s\n%s\nAuthor: %s\nAssignee: %s",
+	//	hook.Repository.Name,
+	//	hook.ObjectAttributes.State,
+	//	hook.ObjectAttributes.Url,
+	//	hook.ObjectAttributes.LastCommit.Message,
+	//	hook.User.Name,
+	//	assigneeName)
+	//message := Message{
+	//	MsgType: "text",
+	//	Text: Content{
+	//		Content: content,
+	//	},
+	//}
+	//sendMessageToWework(message)
 	res, err := json.Marshal(hook)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
