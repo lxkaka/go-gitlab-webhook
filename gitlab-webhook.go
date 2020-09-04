@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -51,8 +52,9 @@ type PushEvent struct {
 
 // assignee information from merge request webhook
 type GitlabUser struct {
-	Name     string
-	UserName string
+	Name      string
+	UserName  string
+	AvatarUrl string
 }
 
 type ObjectAttributes struct {
@@ -60,6 +62,7 @@ type ObjectAttributes struct {
 	Url        string
 	Assignee   GitlabUser
 	State      string
+	Title      string
 }
 
 // merge request information from the webhook
@@ -67,6 +70,7 @@ type MergeRequestEvent struct {
 	User             GitlabUser
 	Repository       GitlabRepository
 	ObjectAttributes ObjectAttributes `json:"object_attributes"`
+	Assignee         GitlabUser
 }
 
 //ConfigRepository represents a repository from the config file
@@ -204,29 +208,28 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("request data: %s", data)
-	log.Printf("hook info: %+v", hook)
-	//assignee := hook.ObjectAttributes.Assignee
-	//assigneeName := ""
-	//if assignee == (GitlabUser{}) {
-	//	assigneeName = "缺少 assignee"
-	//} else {
-	//	assigneeName = assignee.Name
-	//}
-	//content := fmt.Sprintf(
-	//	"%s 有新的 PR(%s):\n%s\n%s\nAuthor: %s\nAssignee: %s",
-	//	hook.Repository.Name,
-	//	hook.ObjectAttributes.State,
-	//	hook.ObjectAttributes.Url,
-	//	hook.ObjectAttributes.LastCommit.Message,
-	//	hook.User.Name,
-	//	assigneeName)
-	//message := Message{
-	//	MsgType: "text",
-	//	Text: Content{
-	//		Content: content,
-	//	},
-	//}
-	//sendMessageToWework(message)
+	assignee := hook.Assignee
+	assigneeName := ""
+	if assignee == (GitlabUser{}) {
+		assigneeName = "缺少 assignee"
+	} else {
+		assigneeName = assignee.Name
+	}
+	content := fmt.Sprintf(
+		"%s 有新的 PR(%s):\n%s\n%s\nAuthor: %s\nAssignee: %s",
+		hook.Repository.Name,
+		hook.ObjectAttributes.State,
+		hook.ObjectAttributes.Url,
+		hook.ObjectAttributes.Title,
+		hook.User.Name,
+		assigneeName)
+	message := Message{
+		MsgType: "text",
+		Text: Content{
+			Content: content,
+		},
+	}
+	sendMessageToWework(message)
 	res, err := json.Marshal(hook)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
