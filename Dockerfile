@@ -1,8 +1,8 @@
-FROM golang:1.14.4
+FROM golang:1.15.6-alpine3.12
 
-RUN mkdir -p src/go-gitlab-webhook
-WORKDIR src/go-gitlab-webhook
+RUN mkdir -p /src
+WORKDIR /src
 COPY . .
-RUN go build .
+RUN go build -o app .
 EXPOSE 8000
-ENTRYPOINT ["./go-gitlab-webhook"]
+ENTRYPOINT ["./app"]
